@@ -3,29 +3,29 @@ import { mysqlTable, serial, varchar, timestamp, mysqlEnum, int, boolean, text, 
 export const tenants = mysqlTable("tenants", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  businessType: mysqlEnum("business_type", ["coffee_shop", "fashion", "laundry", "restoran", "bakery"]).notNull(),
+  business_type: mysqlEnum("business_type", ["coffee_shop", "fashion", "laundry", "restoran", "bakery"]).notNull(),
   domain: varchar("domain", { length: 100 }).unique(),
-  createdAt: timestamp("created_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow(),
 });
 
 export const users = mysqlTable("users", {
   id: serial("id").primaryKey(),
-  tenantId: bigint("tenant_id", { mode: "number", unsigned: true }).references(() => tenants.id, { onDelete: "cascade" }), // NULL for superadmin
+  tenant_id: bigint("tenant_id", { mode: "number", unsigned: true }).references(() => tenants.id, { onDelete: "cascade" }), // NULL for superadmin
   role: mysqlEnum("role", ["superadmin", "tenant_admin", "customer"]).notNull(),
   name: varchar("name", { length: 100 }).notNull(),
   email: varchar("email", { length: 100 }).notNull().unique(),
   phone: varchar("phone", { length: 100 }).notNull(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  password_hash: varchar("password_hash", { length: 255 }).notNull(),
   status: mysqlEnum("status", ["pending", "active", "rejected", "suspended"]).default("pending"),
-  createdAt: timestamp("created_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow(),
 });
 
 export const sessions = mysqlTable("sessions", {
   id: varchar("id", { length: 255 }).primaryKey(), // JWT ID (JTI)
-  userId: bigint("user_id", { mode: "number", unsigned: true }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  user_id: bigint("user_id", { mode: "number", unsigned: true }).notNull().references(() => users.id, { onDelete: "cascade" }),
   token: varchar("token", { length: 255 }).notNull(), // UUID for session tracking
-  ipAddress: varchar("ip_address", { length: 45 }),
-  userAgent: text("user_agent"),
-  isActive: boolean("is_active").default(true),
-  lastActivity: timestamp("last_activity").defaultNow().onUpdateNow(),
+  ip_address: varchar("ip_address", { length: 45 }),
+  user_agent: text("user_agent"),
+  is_active: boolean("is_active").default(true),
+  last_activity: timestamp("last_activity").defaultNow().onUpdateNow(),
 });

@@ -5,13 +5,13 @@ import { eq, and } from "drizzle-orm";
 export const loginUser = async (payload: {
   email: string;
   password: string;
-  tenantId: number;
+  tenant_id: number;
 }) => {
-  // 1. Find user by email and tenantId
+  // 1. Find user by email and tenant_id
   const user = await db.query.users.findFirst({
     where: and(
       eq(users.email, payload.email),
-      eq(users.tenantId, payload.tenantId)
+      eq(users.tenant_id, payload.tenant_id)
     ),
   });
 
@@ -20,7 +20,7 @@ export const loginUser = async (payload: {
   }
 
   // 2. Verify password
-  const isPasswordValid = await Bun.password.verify(payload.password, user.passwordHash);
+  const isPasswordValid = await Bun.password.verify(payload.password, user.password_hash);
   if (!isPasswordValid) {
     throw new Error("email atau password salah");
   }
@@ -31,9 +31,9 @@ export const loginUser = async (payload: {
 
   await db.insert(sessions).values({
     id: sessionId,
-    userId: user.id,
+    user_id: user.id,
     token: sessionToken,
-    isActive: true,
+    is_active: true,
   });
 
   return {
