@@ -1,0 +1,264 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "id": "226a6074-a64f-425d-ae9f-9998fc40f9a7",
+  "prevId": "814c4770-3c4f-45cc-b2f9-0e2cca865c8f",
+  "tables": {
+    "sessions": {
+      "name": "sessions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": true
+        },
+        "last_activity": {
+          "name": "last_activity",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "onUpdate": true,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "sessions_id": {
+          "name": "sessions_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "tenants": {
+      "name": "tenants",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "business_type": {
+          "name": "business_type",
+          "type": "enum('coffee_shop','fashion','laundry','restoran','bakery')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "domain": {
+          "name": "domain",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "tenants_id": {
+          "name": "tenants_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "tenants_domain_unique": {
+          "name": "tenants_domain_unique",
+          "columns": [
+            "domain"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "bigint unsigned",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "enum('superadmin','tenant_admin','customer')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('pending','active','rejected','suspended')",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "(now())"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_tenant_id_tenants_id_fk": {
+          "name": "users_tenant_id_tenants_id_fk",
+          "tableFrom": "users",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "users_id": {
+          "name": "users_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    }
+  },
+  "views": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "tables": {},
+    "indexes": {}
+  }
+}

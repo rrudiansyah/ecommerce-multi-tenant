@@ -1,0 +1,1 @@
+ALTER TABLE `users` MODIFY COLUMN `tenant_id` int unsigned;

@@ -13,8 +13,16 @@ export const usersRoute = new Elysia({ prefix: "/api" })
     })
   )
   .post("/users", async ({ body, set }) => {
+    console.log("Registration Body:", JSON.stringify(body));
     try {
-      const result = await registerUser(body);
+      const result = await registerUser({
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+        password: body.password,
+        role: body.role,
+        tenantId: body.tenant_id,
+      });
       
       return {
         message: "User created successfully",
