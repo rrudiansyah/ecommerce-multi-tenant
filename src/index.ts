@@ -4,13 +4,15 @@ import { usersRoute } from "./routes/users-route";
 import { authRoute } from "./routes/auth-route";
 import { tenantsRoute } from "./routes/tenants-route";
 
-const app = new Elysia()
+export const app = new Elysia()
   .use(usersRoute)
   .use(authRoute)
   .use(tenantsRoute)
-  .get("/", () => "Hello, world! eCommerce Multi-Tenant is running.")
-  .listen(3000);
+  .get("/", () => "Hello, world! eCommerce Multi-Tenant is running.");
 
-console.log(`Server is running at ${app.server?.hostname}:${app.server?.port}`);
+if (import.meta.main) {
+  app.listen(3000);
+  console.log(`Server is running at ${app.server?.hostname}:${app.server?.port}`);
+}
 
 export type App = typeof app;
