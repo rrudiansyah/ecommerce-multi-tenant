@@ -1,69 +1,55 @@
-# Fitur Registrasi User dan Manajemen Session
+# Fitur API Login dan Manajemen Token Sesi
 
 ## Deskripsi Tugas
-Tugas ini adalah untuk mengimplementasikan fungsionalitas registrasi pengguna baru dan merancang skema database untuk sesi masuk (session) yang akan mendampingi implementasi JWT di masa mendatang. 
+Tugas ini adalah untuk mengimplementasikan fungsionalitas **Login** agar pengguna dapat masuk ke aplikasi dan menerima **JSON Web Token (JWT)**. Implementasi ini mencakup penambahan kolom baru pada tabel `sessions` untuk melacak token aktif secara unik di sisi database.
 
-Tugas ini harus dikerjakan dengan menggunakan **ElysiaJS** untuk web server dan **Drizzle ORM** untuk interaksi dengan database MySQL, serta mengikuti struktur proyek yang lebih modular.
-
----
-
-## 1. Spesifikasi Skema Database
-
-Gunakan Drizzle ORM untuk menterjemahkan spesifikasi tabel di bawah ini. Tuliskan kodenya di dalam file `src/db/schema.ts` (Anda dapat menghapus/menimpa tabel `users` bawaan sebelumnya).
-
-### Tabel `users`
-- `id` : INT AUTO_INCREMENT PRIMARY KEY
-- `tenant_id` : INT NULL (Nilai NULL menandakan bahwa entitas ini adalah superadmin aplikasi secara keseluruhan)
-- `role` : ENUM('superadmin', 'tenant_admin', 'customer') NOT NULL
-- `name` : VARCHAR(100) NOT NULL
-- `email` : VARCHAR(100) UNIQUE NOT NULL
-- `phone` : VARCHAR(100) NOT NULL
-- `password_hash` : VARCHAR(255) NOT NULL (Menyimpan password yang di-hash menggunakan algoritma `bcrypt`)
-- `status` : ENUM('pending', 'active', 'rejected', 'suspended') DEFAULT 'pending'
-- `created_at` : TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-### Tabel `sessions`
-Tabel ini digunakan untuk melayani status "Log Masuk" (Login Session) untuk setiap user.
-- `id` : VARCHAR(255) PRIMARY KEY (Ini berfungsi sebagai JWT ID atau JTI)
-- `user_id` : INT NOT NULL
-- `ip_address` : VARCHAR(45)
-- `user_agent` : TEXT
-- `is_active` : BOOLEAN DEFAULT TRUE (Akan digunakan untuk *force logout* atau menendang session out secara paksa)
-- `last_activity` : TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-- *Foreign Key* : `user_id` harus mereferensikan `id` pada tabel `users`, dengan pengaturan `ON DELETE CASCADE`.
+Tugas ini harus menggunakan **ElysiaJS**, **Drizzle ORM**, dan `@elysiajs/jwt` untuk penanganan token.
 
 ---
 
-## 2. API Registrasi User Baru
+## 1. Perubahan Skema Database
 
-Anda harus menyediakan sebuah endpoint REST API untuk melakukan registrasi user baru.
+Lakukan modifikasi pada file `src/db/schema.ts` untuk menambahkan field baru pada tabel `sessions`.
 
-**Endpoint**: `POST /api/users`
+### Update Tabel `sessions`
+- Tambahkan kolom `token` : `VARCHAR(255) NOT NULL`.
+- Kolom ini akan menyimpan **UUID** unik untuk setiap sesi login baru. Hal ini berguna untuk mekanisme *revocation* (pembatalan) token di masa mendatang.
 
-**Request Body** (Berupa Payload JSON):
+Setelah memperbarui kode skema, jalankan perintah sinkronisasi:
+```bash
+bun run db:generate
+bun run db:push
+```
+
+---
+
+## 2. API Login User
+
+Buatlah endpoint baru untuk proses autentikasi.
+
+**Endpoint**: `POST /api/login`
+
+**Request Body** (JSON):
 ```json
 {
-    "name" : "Eko",
     "email" : "eko@localhost",
-    "phone" : "08123456789",
     "password" : "rahasia",
-    "role" : "tenant_admin",
     "tenant_id" : 1
 }
 ```
 
-**Response Body - Saat Sukses** (Status Code `200` atau `201`):
+**Response Body - Saat Sukses** (Status Code `200`):
 ```json
 {
-    "message" : "User created successfully",
-    "data" : "OK"
+    "data" : "token_jwt_yang_dihasilkan"
 }
 ```
+*Catatan: Token JWT harus mengandung payload minimal `id` user, `email`, `role`, dan `jti` (yang berisi nilai kolom `token` dari tabel `sessions`).*
 
-**Response Body - Saat Gagal karena Email Duplikat** (Status Code `400` BadRequest atau sejenisnya):
+**Response Body - Saat Gagal** (Status Code `401` Unauthorized):
 ```json
 {
-    "error" : "user sudah terdaftar"
+    "error" : "email atau password salah"
 }
 ```
 
@@ -71,46 +57,49 @@ Anda harus menyediakan sebuah endpoint REST API untuk melakukan registrasi user 
 
 ## 3. Ketentuan Struktur Folder & File
 
-Kode tidak boleh dijadikan satu blok besar di dalam `index.ts`. Letakkan file tambahan di dalam folder `src/` dengan ketentuan berikut:
+Ikuti pola arsitektur yang sudah ada:
 
-- Folder **`routes/`** : Membuat grup modul untuk meletakkan rute-rute endpoint API (routing ElysiaJS).
-  - Penamaan file harus menggunakan akhiran `-route.ts` (misal: `users-route.ts`).
-- Folder **`services/`** : Berisi file implementasi inti dan logika bisnis yang memproses input dan berinteraksi dengan tabel database.
-  - Penamaan file harus menggunakan akhiran `-service.ts` (misal: `users-service.ts`).
+- **Layer Service (`src/services/auth-service.ts`)**:
+  - Implementasikan fungsi `loginUser(email, password, tenantId)`.
+  - Cari user berdasarkan email dan tenant_id. Jika tidak ada, kembalikan error.
+  - Verifikasi password hash menggunakan `await Bun.password.verify(password, user.passwordHash)`.
+  - Jika valid, buat entri baru di tabel `sessions` menggunakan `crypto.randomUUID()` sebagai nilai kolom `token`.
+  - Kembalikan data user dan token sesi ke layer routing.
+
+- **Layer Routing (`src/routes/auth-route.ts`)**:
+  - Gunakan plugin `@elysiajs/jwt`.
+  - Terima request, panggil *auth-service*.
+  - Jika login valid, hasilkan JWT menggunakan plugin tersebut.
+  - Berikan respons JSON sesuai spesifikasi.
 
 ---
 
-## 4. Tahapan Pengerjaan (Step-by-Step Guide)
+## 4. Tahapan Implementasi (Step-by-Step)
 
-Untuk programmer yang menerima tiket ini, ikuti langkah-langkah di bawah untuk kelancaran integrasi:
+1. **Instalasi Plugin JWT**:
+   Jalankan perintah:
+   ```bash
+   bun add @elysiajs/jwt
+   ```
 
-1. **Membuat Definisi Database**:
-   - Buka `src/db/schema.ts` dan tulislah skema deklaratif Drizzle untuk `users` dan `sessions`. 
-   - Pastikan tipe data sesuai, misal menggunakan tipe enumerasi MySQL (contoh: `mysqlEnum("role", ['superadmin', 'tenant_admin', 'customer'])`).
-   - Terapkan skema tersebut ke database dengan menjalankan perintah:
-     ```bash
-     bun run db:generate
-     bun run db:push
-     ```
+2. **Update Database**:
+   - Tambahkan kolom `token` ke tabel `sessions` di `src/db/schema.ts`.
+   - Lakukan migrasi database.
 
-2. **Logika Bisnis di Layer Service (`src/services/users-service.ts`)**:
-   - Buat fungsi, misal `registerUser(payload)`.
-   - Di dalam fungsi ini, jalankan query untuk mencari entri di tabel `users` di mana kolom `email` cocok dengan payload.
-   - Jika `email` ditemukan, hentikan proses (return error atau throw exception spesifik).
-   - Lakukan hashing pada data `password` yang dikirim menggunakan `Bun.password.hash(..., { algorithm: "bcrypt" })`.
-   - Sisipkan (*insert*) user ke database. Pastikan untuk menempatkan hasil hash dari password ke kolom `password_hash`. Teruskan sisa data (seperti `tenant_id` dan `role`).
+3. **Buat Auth Service**:
+   - Buat file `src/services/auth-service.ts`.
+   - Pastikan hanya user dengan `status: 'active'` yang bisa login (opsional, disarankan).
+   - Pastikan `tenant_id` diperiksa dengan benar untuk memisahkan login antar tenant.
 
-3. **Controller/Routing Layer (`src/routes/users-route.ts`)**:
-   - Impor framework Elysia dan buat instance sub-router.
-   - Sambungkan route `POST /api/users`.
-   - Disarankan untuk memvalidasi *request body* dengan plugin `t` bawaan ElysiaJS (TypeBox) untuk memastikan skema request valid.
-   - Dalam *handler*, panggil fungsi `registerUser(body)` dari file *service*.
-   - Evaluasi kembalian *service*. Kirim JSON respons sukses atau return objek error dengan pola persis sesuai spesifikasi.
+4. **Buat Auth Route**:
+   - Buat file `src/routes/auth-route.ts`.
+   - Daftarkan endpoint `POST /login`.
+   - Setup konfigurasi JWT (gunakan *secret key* sederhana dari `.env`).
 
-4. **Integrasikan ke Aplikasi Utama (`src/index.ts`)**:
-   - Impor modul default atau plugin dari `users-route.ts`.
-   - Integrasikan ke router utama menggunakan fungsionalitas kompoosis Elysia (misal: `app.use(usersRoute)`).
+5. **Integrasi ke `src/index.ts`**:
+   - Gunakan `.use(authRoute)` pada instance utama Elysia.
 
-5. **Lakukan Pengujian (Testing)**:
-   - Gunakan `bun run dev` untuk menyalakan API.
-   - Tembak `POST /api/users` melalui cURL/Postman berulang kali untuk menguji format sukses dan respon penolakan dari "user sudah terdaftar".
+6. **Pengujian**:
+   - Coba login dengan data yang sudah terdaftar di database.
+   - Pastikan token JWT yang dihasilkan valid (bisa dicek lewat jwt.io).
+   - Coba login dengan password atau email yang salah, pastikan pesan error sesuai.
