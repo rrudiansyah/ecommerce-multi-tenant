@@ -40,10 +40,10 @@ export const usersRoute = new Elysia({ prefix: "/api" })
     }
   }, {
     body: t.Object({
-      name: t.String(),
-      email: t.String({ format: "email" }),
-      phone: t.String(),
-      password: t.String(),
+      name: t.String({ maxLength: 100, minLength: 1 }),
+      email: t.String({ format: "email", maxLength: 100 }),
+      phone: t.String({ maxLength: 100, minLength: 1 }),
+      password: t.String({ minLength: 6 }),
       role: t.Enum({
         superadmin: "superadmin",
         tenant_admin: "tenant_admin",
