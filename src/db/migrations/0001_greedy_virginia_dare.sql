@@ -1,0 +1,1 @@
+ALTER TABLE `sessions` ADD `token` varchar(255) NOT NULL;

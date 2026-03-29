@@ -15,6 +15,7 @@ export const users = mysqlTable("users", {
 export const sessions = mysqlTable("sessions", {
   id: varchar("id", { length: 255 }).primaryKey(), // JWT ID (JTI)
   userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).notNull(), // UUID for session tracking
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
   isActive: boolean("is_active").default(true),
