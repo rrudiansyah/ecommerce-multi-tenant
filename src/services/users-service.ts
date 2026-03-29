@@ -26,12 +26,13 @@ export const registerUser = async (payload: {
   });
 
   // 3. Insert user
+  console.log("Inserting user with tenantId:", payload.tenantId);
   await db.insert(users).values({
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
     role: payload.role,
-    tenantId: payload.tenantId || null,
+    tenantId: payload.tenantId ?? null,
     passwordHash: passwordHash,
     status: "pending",
   });
