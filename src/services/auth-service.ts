@@ -25,14 +25,13 @@ export const loginUser = async (payload: {
     throw new Error("email atau password salah");
   }
 
-  // 3. Create a new session with UUID token
-  const sessionToken = crypto.randomUUID();
-  const sessionId = crypto.randomUUID(); // JTI for JWT
+  // 3. Create a new session with a single UUID for both ID and token
+  const sessionId = crypto.randomUUID();
 
   await db.insert(sessions).values({
     id: sessionId,
     user_id: user.id,
-    token: sessionToken,
+    token: sessionId, // Using the same ID as token for simplicity
     is_active: true,
   });
 
@@ -42,7 +41,7 @@ export const loginUser = async (payload: {
       email: user.email,
       role: user.role,
     },
-    sessionToken: sessionToken,
+    sessionToken: sessionId,
     sessionId: sessionId,
   };
 };

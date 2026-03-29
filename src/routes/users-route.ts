@@ -9,7 +9,7 @@ export const usersRoute = new Elysia({ prefix: "/api" })
   .use(
     jwt({
       name: "jwt",
-      secret: process.env.JWT_SECRET || "ecommerce_super_secret_key",
+      secret: process.env.JWT_SECRET!,
     })
   )
   .post("/users", async ({ body, set }) => {
@@ -95,7 +95,7 @@ export const usersRoute = new Elysia({ prefix: "/api" })
     const authHeader = headers['authorization'];
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       set.status = 401;
-      return { error: "Unautorization" };
+      return { error: "Unauthorized" };
     }
 
     const token = authHeader.substring(7);
@@ -103,7 +103,7 @@ export const usersRoute = new Elysia({ prefix: "/api" })
 
     if (!payload || !payload.jti) {
       set.status = 401;
-      return { error: "Unautorization" };
+      return { error: "Unauthorized" };
     }
 
     try {
@@ -113,6 +113,6 @@ export const usersRoute = new Elysia({ prefix: "/api" })
       };
     } catch (error) {
       set.status = 401;
-      return { error: "Unautorization" };
+      return { error: "Unauthorized" };
     }
   });
