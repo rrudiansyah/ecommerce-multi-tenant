@@ -38,3 +38,24 @@ export const registerUser = async (payload: {
 
   return "OK";
 };
+
+export const getCurrentUser = async (userId: number) => {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      tenantId: true,
+      createdAt: true,
+      status: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  return user;
+};
