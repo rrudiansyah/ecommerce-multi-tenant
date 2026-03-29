@@ -1,6 +1,8 @@
 import { Elysia } from "elysia";
+import { usersRoute } from "./routes/users-route";
 
 const app = new Elysia()
+  .use(usersRoute)
   .get("/", () => "Hello, world! eCommerce Multi-Tenant is running.")
   .listen(3000);
 
