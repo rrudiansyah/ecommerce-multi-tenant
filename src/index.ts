@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Elysia } from "elysia";
 import { usersRoute } from "./routes/users-route";
 import { authRoute } from "./routes/auth-route";

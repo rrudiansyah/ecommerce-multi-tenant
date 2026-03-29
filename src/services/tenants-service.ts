@@ -3,13 +3,13 @@ import { tenants } from "../db/schema";
 
 export const createTenant = async (payload: {
   name: string;
-  businessType: "coffee_shop" | "fashion" | "laundry" | "restoran" | "bakery";
+  business_type: "coffee_shop" | "fashion" | "laundry" | "restoran" | "bakery";
   domain?: string;
 }) => {
   try {
     await db.insert(tenants).values({
       name: payload.name,
-      businessType: payload.businessType,
+      business_type: payload.business_type,
       domain: payload.domain,
     });
     

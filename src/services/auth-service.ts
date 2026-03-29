@@ -5,13 +5,13 @@ import { eq, and } from "drizzle-orm";
 export const loginUser = async (payload: {
   email: string;
   password: string;
-  tenantId: number;
+  tenant_id: number;
 }) => {
-  // 1. Find user by email and tenantId
+  // 1. Find user by email and tenant_id
   const user = await db.query.users.findFirst({
     where: and(
       eq(users.email, payload.email),
-      eq(users.tenantId, payload.tenantId)
+      eq(users.tenant_id, payload.tenant_id)
     ),
   });
 
@@ -20,20 +20,19 @@ export const loginUser = async (payload: {
   }
 
   // 2. Verify password
-  const isPasswordValid = await Bun.password.verify(payload.password, user.passwordHash);
+  const isPasswordValid = await Bun.password.verify(payload.password, user.password_hash);
   if (!isPasswordValid) {
     throw new Error("email atau password salah");
   }
 
-  // 3. Create a new session with UUID token
-  const sessionToken = crypto.randomUUID();
-  const sessionId = crypto.randomUUID(); // JTI for JWT
+  // 3. Create a new session with a single UUID for both ID and token
+  const sessionId = crypto.randomUUID();
 
   await db.insert(sessions).values({
     id: sessionId,
-    userId: user.id,
-    token: sessionToken,
-    isActive: true,
+    user_id: user.id,
+    token: sessionId, // Using the same ID as token for simplicity
+    is_active: true,
   });
 
   return {
@@ -42,7 +41,7 @@ export const loginUser = async (payload: {
       email: user.email,
       role: user.role,
     },
-    sessionToken: sessionToken,
+    sessionToken: sessionId,
     sessionId: sessionId,
   };
 };

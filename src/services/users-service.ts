@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { users } from "../db/schema";
+import { users, sessions } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 export const registerUser = async (payload: {
@@ -8,7 +8,7 @@ export const registerUser = async (payload: {
   phone: string;
   password: string;
   role: "superadmin" | "tenant_admin" | "customer";
-  tenantId?: number;
+  tenant_id?: number;
 }) => {
   // 1. Check if email already exists
   const existingUser = await db.query.users.findFirst({
@@ -20,20 +20,21 @@ export const registerUser = async (payload: {
   }
 
   // 2. Hash password with bcrypt
-  const passwordHash = await Bun.password.hash(payload.password, {
+  const password_hash = await Bun.password.hash(payload.password, {
     algorithm: "bcrypt",
     cost: 10,
   });
 
   // 3. Insert user
-  console.log("Inserting user with tenantId:", payload.tenantId);
+  console.log("Full payload in service:", JSON.stringify(payload));
+  console.log("Inserting user with tenant_id:", payload.tenant_id);
   await db.insert(users).values({
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
     role: payload.role,
-    tenantId: payload.tenantId ?? null,
-    passwordHash: passwordHash,
+    tenant_id: payload.tenant_id ?? null,
+    password_hash: password_hash,
     status: "pending",
   });
 
@@ -48,8 +49,8 @@ export const getCurrentUser = async (userId: number) => {
       name: true,
       email: true,
       role: true,
-      tenantId: true,
-      createdAt: true,
+      tenant_id: true,
+      created_at: true,
       status: true,
     },
   });
@@ -59,4 +60,9 @@ export const getCurrentUser = async (userId: number) => {
   }
 
   return user;
+};
+
+export const logoutUser = async (sessionToken: string) => {
+  await db.delete(sessions).where(eq(sessions.token, sessionToken));
+  return "OK";
 };

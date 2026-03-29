@@ -6,7 +6,7 @@ export const authRoute = new Elysia({ prefix: "/api" })
   .use(
     jwt({
       name: "jwt",
-      secret: process.env.JWT_SECRET || "ecommerce_super_secret_key",
+      secret: process.env.JWT_SECRET!,
       exp: "7d", // token expires in 7 days
     })
   )
@@ -17,7 +17,7 @@ export const authRoute = new Elysia({ prefix: "/api" })
         const { user, sessionId, sessionToken } = await loginUser({
           email: body.email,
           password: body.password,
-          tenantId: body.tenant_id,
+          tenant_id: body.tenant_id,
         });
 
         // Generate JWT with user info and session token (JTI)

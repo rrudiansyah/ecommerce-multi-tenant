@@ -8,7 +8,7 @@ export const tenantsRoute = new Elysia({ prefix: "/api" })
       try {
         const result = await createTenant({
           name: body.name,
-          businessType: body.business_type,
+          business_type: body.business_type,
           domain: body.domain,
         });
         
