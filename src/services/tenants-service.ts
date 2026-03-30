@@ -18,3 +18,12 @@ export const createTenant = async (payload: {
     throw new Error("error");
   }
 };
+
+export const getTenants = async () => {
+  return await db.query.tenants.findMany({
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
+};

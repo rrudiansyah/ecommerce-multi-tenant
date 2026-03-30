@@ -45,7 +45,7 @@ export const authRoute = new Elysia({ prefix: "/api" })
       body: t.Object({
         email: t.String({ format: "email" }),
         password: t.String(),
-        tenant_id: t.Number(),
+        tenant_id: t.Optional(t.Number()),
       }),
     }
   );

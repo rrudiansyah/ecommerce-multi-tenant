@@ -13,20 +13,20 @@ export const usersRoute = new Elysia({ prefix: "/api" })
     })
   )
   .post("/users", async ({ body, set }) => {
-    console.log("Registration Body:", JSON.stringify(body));
-    console.log("tenant_id from body:", typeof body.tenant_id, body.tenant_id);
     try {
       const result = await registerUser({
         name: body.name,
         email: body.email,
         phone: body.phone,
         password: body.password,
-        role: body.role,
+        role: body.role as any,
         tenant_id: body.tenant_id,
+        business_name: body.business_name,
+        business_type: body.business_type as any,
       });
       
       return {
-        message: "User created successfully",
+        message: "User and Business created successfully",
         data: result,
       };
     } catch (error: any) {
@@ -44,12 +44,20 @@ export const usersRoute = new Elysia({ prefix: "/api" })
       email: t.String({ format: "email", maxLength: 100 }),
       phone: t.String({ maxLength: 100, minLength: 1 }),
       password: t.String({ minLength: 6 }),
-      role: t.Enum({
+      role: t.Optional(t.Enum({
         superadmin: "superadmin",
         tenant_admin: "tenant_admin",
         customer: "customer",
-      }),
+      })),
       tenant_id: t.Optional(t.Number()),
+      business_name: t.Optional(t.String()),
+      business_type: t.Optional(t.Enum({
+        coffee_shop: "coffee_shop",
+        fashion: "fashion",
+        laundry: "laundry",
+        restoran: "restoran",
+        bakery: "bakery",
+      })),
     }),
   })
   .get("/users/current", async ({ jwt, headers, set }) => {
