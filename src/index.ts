@@ -4,12 +4,14 @@ import { usersRoute } from "./routes/users-route";
 import { authRoute } from "./routes/auth-route";
 import { tenantsRoute } from "./routes/tenants-route";
 import { packagesRoute } from "./routes/packages-route";
+import { tenantSubscriptionsRoute } from "./routes/tenant-subscriptions-route";
 
 export const app = new Elysia()
   .use(usersRoute)
   .use(authRoute)
   .use(tenantsRoute)
   .use(packagesRoute)
+  .use(tenantSubscriptionsRoute)
   .get("/", () => "Hello, world! eCommerce Multi-Tenant is running.");
 
 if (import.meta.main) {
