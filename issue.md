@@ -1,43 +1,87 @@
-# Bug: Internal Server Error saat Panjang Karakter Payload Melebihi Kapasitas Database
+# [Feature Request] Implementasi Tabel `packages` & API Pendaftaran Paket Baru
 
-## Deskripsi Isu
-Saat ini, proses pendaftaran *user* baru (`POST /api/users`) tidak divalidasi dengan baik terkait panjang maksimal karakternya. Jika kita mencoba mengirim *payload* (seperti profil `name`) yang memiliki kepanjangan lebih dari 100 karakter, API gagal merespons dengan wajar (seperti memberikan pesan "Validasi gagal"). Alih-alih demikian, aplikasi tersebut merespons dramatis dengan meluncurkan respons **500 Internal Server Error**.
+## Deskripsi
+Fitur ini bertujuan untuk menambahkan kapabilitas manajemen paket berlangganan (*subscription packages*) ke dalam platform E-Commerce Multi-Tenant. Paket ini nantinya akan digunakan sebagai acuan limitasi sumber daya (*resource limits*) dan masa langganan *tenant*.
 
-**Penyebab:** Pada sisi skema *database* (di `schema.ts`), atribut `name`, `email`, dan `phone` dikonfigurasikan setinggi-tingginya `varchar(100)`. Saat muatan (payload) yang lewat dari *route* belum dipagari oleh batas atas karakter, muatan itu dibiarkan melaju ke *database*, sehingga MySQL memberikan perlawanan/penolakan error (`ER_DATA_TOO_LONG`). Kemudian rute menangkap eksepsi ini dan menggeneralisirnya sebagai kesalahan internal `500`.
-
-Tugas ini difokuskan untuk memperbaiki pencegahan di awal, yakni menambahkan kontrol batas karakter ke dalam lapisan rute ElysiaJS.
+Tugas ini ditujukan bagi *junior programmer* maupun *AI agent*. Harap berpedoman pada spesifikasi lapisan dan urutan kerja berikut ini.
 
 ---
 
-## File Target
-Tugas bertempat di berkas:
-- **Routing Layer (`src/routes/users-route.ts`)**
+## 1. Kebutuhan Skema Database (Tabel `packages`)
+
+Modifikasi file `src/db/schema.ts` dan tambahkan struktur tabel baru dengan properti (properti Drizzle ORM `snake_case`) yang bersesuaian dengan tipe SQL di bawah:
+
+| Kolom | Definisi SQL / Tipe Ekivalen | Keterangan Aturan |
+| :--- | :--- | :--- |
+| `id` | `INT AUTO_INCREMENT PRIMARY KEY` | Kunci utama/unik |
+| `name` | `VARCHAR(100) NOT NULL` | Nama paket (Cth: 'Free Trial 30 Hari', 'Basic 1 Bulan') |
+| `price` | `DECIMAL(10, 2) NOT NULL DEFAULT 0.00`| Biaya langganan. Default gratis (0.00) |
+| `duration_days` | `INT NOT NULL` | Masa berlaku dalam hitungan hari |
+| `max_users` | `INT NULL` | Jumlah maksimal admin/pengguna. Boleh `Null` |
+| `max_products` | `INT NULL` | Jumlah maksimal produk di lapak. Boleh `Null` |
+| `is_active` | `BOOLEAN DEFAULT TRUE` | Status operasional paket |
+| `created_at` | `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`| Catatan waktu pembuatan |
 
 ---
 
-## Tahapan Implementasi Perbaikan (Panduan Bertahap)
+## 2. Kebutuhan Layanan API
 
-Untuk eksekutor yang menyempurnakan struktur *bug* ini, ini adalah langkah yang harus dilakukan:
+Buatkan antarmuka peladen (*Endpoint*) baru untuk merekam data paket.
 
-### Langkah 1: Pahami Skema Basis Data (Database)
-1. Tinjau file `src/db/schema.ts`.
-2. Lihat deklarasi tabel `users` pada properti kolom `name`, `email`, serta `phone` yang masing-masing tercetak `varchar("...", { length: 100 })`.
-3. Dari skema itu dapat kita ketahui bahwa batas toleransi adalah **100 karakter**.
+- **URL Endpoint:** `POST /api/packages`
+- **Fungsi:** Pembuatan/registrasi paket berlangganan baru.
 
-### Langkah 2: Tambahkan Pertahanan Panjang pada Tipe Objek Rute
-1. Buka pengontrol API pengguna di `src/routes/users-route.ts`.
-2. Carilah baris di mana deklarasi rute registrasi (`.post("/users", ...)`) diakhiri oleh properti proteksi:
-   ```typescript
-   body: t.Object({ ... })
-   ```
-3. Tambahkan restriksi maksimal ke properti TypeBox tersebut dengan memasukkan konfigurasi `{ maxLength: 100 }`. Lebih dianjurkan untuk tak luput memasang `minLength: 1` untuk memagari masuknya spasi belaka. 
-   - Modifikasi `name: t.String()` manjadi `name: t.String({ maxLength: 100, minLength: 1 })`.
-   - Modifikasi `email: t.String({ format: "email" })` manjadi `email: t.String({ format: "email", maxLength: 100 })`.
-   - Modifikasi `phone: t.String()` manjadi `phone: t.String({ maxLength: 100, minLength: 1 })`.
-   - (Opsional) Pada password karena langsung menembus hash bcrypt, Anda sanggup menambahkan `password: t.String({ minLength: 6 })`.
+### Draf *Request Body*
+Spesifikasi tipe beban (*payload/body*) yang harus dipatuhi sistem validasi (misalnya menggunakan **Elysia TypeBox**):
 
-### Langkah 3: Pengujian Validasi
-1. Simpan perubahan dan nyalakan ulang server (`bun run dev`).
-2. Gunakan *cURL* ataupun jalankan skrip *fetch* buatan yang sengaja me-_looping_ teks karakter melebihi 100 panjangnya untuk bidang nama (contoh sintaksis JS: `"a".repeat(105)`).
-3. Evaluasi *response*-nya. Server harus spontan membuahkan penolakan kesalahan **HTTP Status 422 (Unprocessable Content)** atau **HTTP 400 Bad Request** ala Elysia validasi TypeBox, bukan lagi HTTP Status `500`.
-4. Anda sudah berhasil menghemat beban *database* server Anda dari pemanggilan dan eksekusi sampah.
+```json
+{
+    "name": "Basic",
+    "duration_days": 30,
+    "max_users": 1,
+    "max_products": 10
+}
+```
+
+### Draf *Response Body* (Sukses)
+Bila data sah dan penyisipan data ke pangkalan MySQL nihil eror:
+```json
+{
+    "data": "OK"
+}
+```
+
+### Draf *Response Body* (Error)
+Jika terpentok masalah validasi dari sisi *client* atau internal layanan:
+```json
+{
+    "error": "error"
+}
+```
+
+---
+
+## 3. Langkah-Langkah Implementasi (*Walkthrough*)
+
+Terapkan pengembangan fitur memegang teguh pada *Layered Architecture* (terpisah antara `routes` dan `services`).
+
+- [ ] **Tahap 1: Sinkronisasi Skema Pangkalan Data**
+  1. Perbarui `src/db/schema.ts` dengan menyisipkan variabel eksport `packages` memakai cetakan kolom Drizzle (contoh: `decimal`, `int`, `varchar`).
+  2. Jangan lupa tembakkan perintah migrasi struktur di terminal lokal: `bun run db:push` (atau perintah sejenis).
+
+- [ ] **Tahap 2: Pembuatan Logika Manipulasi Data (*Services Layer*)**
+  1. Ciptakan satu berkas penanganan pada area ini: `src/services/packages-service.ts`.
+  2. Implementasikan dan *export* logika pemanggilan Drizzle ORM (insert query) yang menerima parameter paket baru untuk menjebloskannya ke tabel `packages`. 
+
+- [ ] **Tahap 3: Pembuatan Rute Pengontrol (*Routes Layer*)**
+  1. Rintis file baru: `src/routes/packages-route.ts`.
+  2. Ikat fungsi logika `services` ke dalam wadah `.post(...)` dari kerangka **ElysiaJS**.
+  3. Bubuhkan lapis penjagaan Validasi input (*TypeBox Schema*) untuk `body` sebelum izin akses fungsi servis diberikan.
+
+- [ ] **Tahap 4: Pendaftaran Rute Eksekutif (*App Index*)**
+  1. Sorot titik lebur utama server di `src/index.ts`.
+  2. Impor modul `packagesRoute` eks berkas di Tahap 3. 
+  3. Rajut modul tersebut di dalam barisan `.use(packagesRoute)` pada instans utama Elysia.
+
+---
+**Tip Cepat:** Apabila ada ketersendatan metode penulisan syntax Drizzle/Elysia, Anda dipersilakan mengintip cara penulisan sistem `tenants` atau `users` (*users-route.ts*, *users-service.ts*) pada repositori proyek ini sebagai *role-model* kodingan. Semangat mengeksekusi!

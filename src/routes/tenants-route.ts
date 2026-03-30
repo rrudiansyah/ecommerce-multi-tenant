@@ -1,7 +1,12 @@
 import { Elysia, t } from "elysia";
-import { createTenant } from "../services/tenants-service";
+import { createTenant, getTenants } from "../services/tenants-service";
 
 export const tenantsRoute = new Elysia({ prefix: "/api" })
+  .get("/tenants", async () => {
+    return {
+      data: await getTenants(),
+    };
+  })
   .post(
     "/tenants",
     async ({ body, set }) => {

@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { users, sessions } from "../db/schema";
+import { users, sessions, tenants } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 export const registerUser = async (payload: {
@@ -7,8 +7,10 @@ export const registerUser = async (payload: {
   email: string;
   phone: string;
   password: string;
-  role: "superadmin" | "tenant_admin" | "customer";
+  role?: "superadmin" | "tenant_admin" | "customer";
   tenant_id?: number;
+  business_name?: string;
+  business_type?: "coffee_shop" | "fashion" | "laundry" | "restoran" | "bakery";
 }) => {
   // 1. Check if email already exists
   const existingUser = await db.query.users.findFirst({
@@ -25,15 +27,24 @@ export const registerUser = async (payload: {
     cost: 10,
   });
 
-  // 3. Insert user
-  console.log("Full payload in service:", JSON.stringify(payload));
-  console.log("Inserting user with tenant_id:", payload.tenant_id);
+  // 3. Handle Tenant creation if business info is provided
+  let finalTenantId = payload.tenant_id;
+  
+  if (payload.business_name && payload.business_type) {
+    const [result] = await db.insert(tenants).values({
+      name: payload.business_name,
+      business_type: payload.business_type,
+    });
+    finalTenantId = (result as any).insertId;
+  }
+
+  // 4. Insert user
   await db.insert(users).values({
     name: payload.name,
     email: payload.email,
     phone: payload.phone,
-    role: payload.role,
-    tenant_id: payload.tenant_id ?? null,
+    role: payload.role || "tenant_admin",
+    tenant_id: finalTenantId ?? null,
     password_hash: password_hash,
     status: "pending",
   });
