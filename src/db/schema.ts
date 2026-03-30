@@ -1,4 +1,4 @@
-import { mysqlTable, serial, varchar, timestamp, mysqlEnum, int, boolean, text, bigint, decimal } from "drizzle-orm/mysql-core";
+import { mysqlTable, serial, varchar, timestamp, mysqlEnum, int, boolean, text, bigint, decimal, datetime } from "drizzle-orm/mysql-core";
 
 export const tenants = mysqlTable("tenants", {
   id: serial("id").primaryKey(),
@@ -39,4 +39,15 @@ export const packages = mysqlTable("packages", {
   max_products: int("max_products"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at").defaultNow(),
+});
+
+export const tenantSubscriptions = mysqlTable("tenant_subscriptions", {
+  id: serial("id").primaryKey(),
+  tenant_id: bigint("tenant_id", { mode: "number", unsigned: true }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  package_id: bigint("package_id", { mode: "number", unsigned: true }).notNull().references(() => packages.id),
+  start_date: datetime("start_date").notNull(),
+  end_date: datetime("end_date").notNull(),
+  status: mysqlEnum("status", ["active", "expired", "cancelled"]).default("active"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
